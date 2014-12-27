@@ -1,0 +1,11 @@
+1. build step
+	a. gcc -c -fPIC dyn_array.c tw_tick.c
+	b. gcc -shared -Wl,-soname,libapex.so.1 -o libapex.so.1.0.0 dyn_array.o tw_tick.o
+	c. ln -s libapex.so.1.0.0 libapex.so
+	d. ln -s libapex.so.1.0.0 libapex.so.1
+
+2. copy to /usr/lib
+	a. cp libapex.so.1 /usr/lib
+
+3. build test program
+	a. gcc test.c libapex.so -o test1 -lpthread
