@@ -72,8 +72,7 @@ bool valid_length (uint8_t *data, int len)
 	//if (!ret)
 	//	printf ("[%0x %0x] tick length not enouth\n", data[2], data[3]);
 
-	return true;
-	//return ret;
+	return ret;
 }
 
 bool valid_symbol (struct tw_tick *tick)
@@ -243,7 +242,6 @@ int push_to_list (uint8_t *data, int len)
 	{
 		case 0x36: case 0x37: case 0x38:
 		case 0x39: case 0x47: case 0x48: 
-		default :
 		{
 			if (vip_parse (data, len) < 0)
 			{
@@ -252,7 +250,7 @@ int push_to_list (uint8_t *data, int len)
 			}
 			break;
 		}
-		//default: return -1;
+		default: return -1;
 	}
 
 	g_tick_current->next = NULL;
