@@ -67,12 +67,17 @@ bool valid_length (uint8_t *data, int len)
 		case 0x38: ret = (len < 11+item_cnt+ext_cnt) ? false : true; break;
 		case 0x48: ret = (len < 11+item_cnt+ext_cnt) ? false : true; break;
 		case 0x39: ret = (len < 11+item_cnt+ext_cnt) ? false : true; break;
+
+		case 0x44: ret = (len < 168) ? false : true; break;
+		case 0x45: ret = (len < 33) ? false : true; break;
+		case 0x46: ret = (len < 102) ? false : true; break;
 		default: ret = false; break;
 	}
 	//if (!ret)
 	//	printf ("[%0x %0x] tick length not enouth\n", data[2], data[3]);
 
 	return ret;
+	//return true;
 }
 
 bool valid_symbol (struct tw_tick *tick)
@@ -119,16 +124,25 @@ int vip_parse (uint8_t *data, int len)
 
 	//成交時間
 	uint16_t time = 0;
-	if (trans_no == 0x36 || trans_no == 0x47 || trans_no == 0x37)
+	if (trans_no == 0x36 || trans_no == 0x47 || 
+			trans_no == 0x37 || trans_no == 0x44 || trans_no == 0x45)
 	{
-		//昨收
-		uint32_t yes = data[11] | (data[12] << 8) | (data[13] << 16);
-		tick->ref = yes;
-
 		time = data[9] | (data[10] << 8);
 	}
-	if (trans_no == 0x38 || trans_no == 0x48 || trans_no == 0x39)
+	else if (trans_no == 0x38 || trans_no == 0x48 || trans_no == 0x39)
 		time = data[8] | (data[9] << 8);
+
+	//昨收
+	if (trans_no == 44)
+	{
+		tick->ref = data[15] | (data[16] << 8) | 
+			(data[17] << 16) | (data[18] << 24);
+	}
+	else if (trans_no == 0x36 || trans_no == 0x47 || 
+			trans_no == 0x37)
+	{
+		tick->ref = data[11] | (data[12] << 8) | (data[13] << 16);
+	}
 
 	snprintf (tick->time, 32, "%02d:%02d:%02d", time/3600,
 		(time%3600)/60, (time%3600)%60);
@@ -143,7 +157,7 @@ int vip_parse (uint8_t *data, int len)
 		tick->volumn = data[17] | (data[18] << 8) | (data[19] << 16);
 
 	}
-	if (trans_no == 0x47)
+	else if (trans_no == 0x47)
 	{
 		tick->open = data[30] | (data[31] << 8);
 		tick->high = data[32] | (data[33] << 8);
@@ -151,13 +165,26 @@ int vip_parse (uint8_t *data, int len)
 		tick->price = data[18] | (data[19] << 8);
 		tick->volumn = data[20] | (data[21] << 8) | (data[22] << 16);
 	}
-	if (trans_no == 0x37)
+	else if (trans_no == 0x37)
 	{
 		tick->open = data[33] | (data[34] << 8) | (data[35] << 16);
 		tick->high = data[36] | (data[37] << 8) | (data[38] << 16);
 		tick->low = data[39] | (data[40] << 8) | (data[41] << 16);
 		tick->price = data[20] | (data[21] << 8) | (data[22] << 16);
 		tick->volumn = data[23] | (data[24] << 8) | (data[25] << 16);
+	}
+	else if (trans_no == 0x44)
+	{
+		tick->open = data[133] | (data[134] << 8) | (data[135] << 16) | (data[136] << 24);
+		tick->high = data[137] | (data[138] << 8) | (data[139] << 16) | (data[140] << 24);
+		tick->low = data[141] | (data[142] << 8) | (data[143] << 16) | (data[144] << 24);
+		tick->price = data[117] | (data[118] << 8) | (data[119] << 16) | (data[120] << 24);
+		tick->volumn = data[121] | (data[122] << 8) | (data[123] << 16) | (data[124] << 24);
+	}
+	else if (trans_no == 0x45)
+	{
+		tick->price = data[12] | (data[13] << 8) | (data[14] << 16) | (data[15] << 24);
+		tick->volumn = data[20] | (data[21] << 8) | (data[22] << 16) | (data[23] << 24);
 	}
 	uint8_t ext_flag = 0;
 
@@ -181,47 +208,69 @@ int vip_parse (uint8_t *data, int len)
 	
 
 	//委託行情
-	uint8_t item_flag, i, buy_cnt, sell_cnt;
+	uint8_t item_flag = 0;
+	uint8_t i;
+	uint8_t buy_cnt = 0;
+	uint8_t sell_cnt = 0;
+
 	if (trans_no == 0x36 || trans_no == 0x47 || trans_no == 0x37)
 		item_flag = data[6];
-	if (trans_no == 0x38 || trans_no == 0x48 || trans_no == 0x39)
+	else if (trans_no == 0x38 || trans_no == 0x48 || trans_no == 0x39)
 		item_flag = data[5];
-	buy_cnt = item_flag >> 4;
-	sell_cnt = item_flag & 0x0f;
+	if (item_flag > 0)
+	{
+		buy_cnt = item_flag >> 4;
+		sell_cnt = item_flag & 0x0f;
+	}
 	
 	int start_pos = 0;
 	if (trans_no == 0x36) start_pos = 31;
-	if (trans_no == 0x47) start_pos = 37;
-	if (trans_no == 0x37) start_pos = 43;
-	if (trans_no == 0x38 || trans_no == 0x48 ||	trans_no == 0x39) 
+	else if (trans_no == 0x47) start_pos = 37;
+	else if (trans_no == 0x37) start_pos = 43;
+	else if (trans_no == 0x38 || trans_no == 0x48 || trans_no == 0x39) 
 		start_pos = 11;
+	else if (trans_no == 0x46)
+	{
+		start_pos = 5;
+		buy_cnt = 5;
+		sell_cnt = 5;
+	}
 
 	if (buy_cnt > 5) buy_cnt = 5;
 	if (sell_cnt > 5) sell_cnt = 5;
 	for (i=0; i<buy_cnt; i++)
 	{
 		tick->down5price[i] = data[start_pos++];
-		if (trans_no == 0x47 || trans_no == 0x37 ||
-			trans_no == 0x48 || trans_no == 0x39)
+		if (trans_no == 0x47 || trans_no == 0x37 ||	trans_no == 0x48 || 
+				trans_no == 0x39 || trans_no == 0x46)
 			tick->down5price[i] |= (data[start_pos++] << 8);
-		if (trans_no == 0x37 || trans_no == 0x39)
+		if (trans_no == 0x37 || trans_no == 0x39 || trans_no == 0x46)
 			tick->down5price[i] |= (data[start_pos++] << 16);
+		if (trans_no == 0x46)
+			tick->down5price[i] |= (data[start_pos++] << 24);
 
 		tick->down5volumn[i] = data[start_pos++];
 		tick->down5volumn[i] |= (data[start_pos++] << 8);
 		tick->down5volumn[i] |= (data[start_pos++] << 16);
+		if (trans_no == 0x46)
+			tick->down5volumn[i] |= (data[start_pos++] << 24);
 	}
 	for (i=0; i<sell_cnt; i++)
 	{
 		tick->top5price[i] = data[start_pos++];
-		if (trans_no == 0x47 || trans_no == 0x37 ||
-			trans_no == 0x48 || trans_no == 0x39)
+		if (trans_no == 0x47 || trans_no == 0x37 ||	trans_no == 0x48 || 
+				trans_no == 0x39 || trans_no == 0x46)
 			tick->top5price[i] |= (data[start_pos++] << 8);
-		if (trans_no == 0x37 || trans_no == 0x39)
+		if (trans_no == 0x37 || trans_no == 0x39 || trans_no == 0x46)
 			tick->top5price[i] |= (data[start_pos++] << 16);
+		if (trans_no == 0x46)
+			tick->top5price[i] |= (data[start_pos++] << 24);
+
 		tick->top5volumn[i] = data[start_pos++];
 		tick->top5volumn[i] |= (data[start_pos++] << 8);
 		tick->top5volumn[i] |= (data[start_pos++] << 16);
+		if (trans_no == 0x46)
+			tick->top5volumn[i] |= (data[start_pos++] << 24);
 	}
 	//printf ("symbol= %s\n", tick->symbol);
 	return 0;
@@ -242,6 +291,8 @@ int push_to_list (uint8_t *data, int len)
 	{
 		case 0x36: case 0x37: case 0x38:
 		case 0x39: case 0x47: case 0x48: 
+		case 0x44: case 0x45: case 0x46: 
+		//default:
 		{
 			if (vip_parse (data, len) < 0)
 			{

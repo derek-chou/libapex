@@ -58,9 +58,9 @@ void push_thread_file ()
 	char buff[1024] = {0x00};
 	char filename[128] = {0x00};
 
-	for (i=0; i<1; i++)
+	for (i=2; i<=2; i++)
 	{
-		snprintf (filename, 128, "testdata/%d", i+1);
+		snprintf (filename, 128, "../viptestdata/%d", i);
 		fd = open (filename, O_RDONLY);
 		if (fd < 0)
 		{
