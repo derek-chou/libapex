@@ -135,8 +135,8 @@ int vip_parse (uint8_t *data, int len)
 	//昨收
 	if (trans_no == 44)
 	{
-		tick->ref = data[15] | (data[16] << 8) | 
-			(data[17] << 16) | (data[18] << 24);
+		tick->ref = data[11] | (data[12] << 8) | 
+			(data[13] << 16) | (data[14] << 24);
 	}
 	else if (trans_no == 0x36 || trans_no == 0x47 || 
 			trans_no == 0x37)
