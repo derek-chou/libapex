@@ -117,7 +117,7 @@ int main()
 	//step 1 : init
 	tt_init ();
 	
-	pthread_create (&push_thread_id, NULL, (void *)push_thread_file, 
+	pthread_create (&push_thread_id, NULL, (void *)push_thread_tcp, 
 		(void *)NULL);
 	pthread_create (&pull_thread_id, NULL, (void *)pull_thread, 
 		(void *)NULL);

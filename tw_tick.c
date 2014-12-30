@@ -297,6 +297,7 @@ int push_to_list (uint8_t *data, int len)
 			if (vip_parse (data, len) < 0)
 			{
 				//printf ("vip_parse fail!!\n");
+				if (g_tick_current) free (g_tick_current);
 				return -1;
 			}
 			break;
