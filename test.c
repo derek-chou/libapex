@@ -54,13 +54,14 @@ void push_thread_tcp ()
 void push_thread_file ()
 {
 	int fd;
-	int readbytes, i;
+	int readbytes;//, i;
 	char buff[1024] = {0x00};
 	char filename[128] = {0x00};
 
-	for (i=2; i<=2; i++)
+//	for (i=2; i<=2; i++)
 	{
-		snprintf (filename, 128, "../viptestdata/%d", i);
+		//snprintf (filename, 128, "../viptestdata/%d", i);
+		snprintf (filename, 128, "../viptestdata/2014123113-VIP.dat");
 		fd = open (filename, O_RDONLY);
 		if (fd < 0)
 		{
@@ -83,11 +84,14 @@ void pull_thread ()
 {
 	struct tw_tick tick;
 	int rc;
-	while (1)
+	int cnt = 100;
+	while (cnt > 0)
 	{
 		//step 3 : pull data
 		rc = tt_pull (&tick);
 		if (rc == 0)
+		{
+			//cnt--;
 			printf ("tick type=%0x, symbol=%s, time=%s, ref=%d, "
 "open=%d, high=%d, low=%d, price=%d, volumn=%d\n"
 "t5[0]=%d:%d, t5[1]=%d:%d, t5[2]=%d:%d, t5[3]=%d:%d, t5[4]=%d:%d\n" 
@@ -107,6 +111,7 @@ void pull_thread ()
 			);
 		//else
 		//	printf ("tt_pull fail\n");
+		}
 	}
 }
 
@@ -117,7 +122,7 @@ int main()
 	//step 1 : init
 	tt_init ();
 	
-	pthread_create (&push_thread_id, NULL, (void *)push_thread_tcp, 
+	pthread_create (&push_thread_id, NULL, (void *)push_thread_file, 
 		(void *)NULL);
 	pthread_create (&pull_thread_id, NULL, (void *)pull_thread, 
 		(void *)NULL);

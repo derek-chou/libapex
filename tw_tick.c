@@ -133,7 +133,7 @@ int vip_parse (uint8_t *data, int len)
 		time = data[8] | (data[9] << 8);
 
 	//昨收
-	if (trans_no == 44)
+	if (trans_no == 0x44)
 	{
 		tick->ref = data[11] | (data[12] << 8) | 
 			(data[13] << 16) | (data[14] << 24);
@@ -291,7 +291,7 @@ int push_to_list (uint8_t *data, int len)
 	{
 		case 0x36: case 0x37: case 0x38:
 		case 0x39: case 0x47: case 0x48: 
-		case 0x44: case 0x45: case 0x46: 
+		case 0x44: case 0x45: case 0x46:
 		//default:
 		{
 			if (vip_parse (data, len) < 0)
