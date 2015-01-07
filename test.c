@@ -41,6 +41,7 @@ void push_thread_tcp ()
 		{
 			break;
 		}
+		tt_load_config ();
 		//printf ("read bytes=%d\n", reads);
 		//step 2 : push data
 		int rc = tt_push (msg, reads);
@@ -55,7 +56,7 @@ void push_thread_file ()
 {
 	int fd;
 	int readbytes;//, i;
-	char buff[1024] = {0x00};
+	char buff[128] = {0x00};
 	char filename[128] = {0x00};
 
 //	for (i=2; i<=2; i++)
@@ -73,12 +74,11 @@ void push_thread_file ()
 			int rc = tt_push ((uint8_t*)buff, readbytes);
 			if (rc != 0)
 				printf ("rc = %d\n", rc);
+
 		}
 		usleep (1000 * 1000);
 	}
 }
-
-
 
 void pull_thread ()
 {
@@ -112,6 +112,8 @@ void pull_thread ()
 		//else
 		//	printf ("tt_pull fail\n");
 		}
+		
+		//usleep (1000);
 	}
 }
 
@@ -122,7 +124,7 @@ int main()
 	//step 1 : init
 	tt_init ();
 	
-	pthread_create (&push_thread_id, NULL, (void *)push_thread_file, 
+	pthread_create (&push_thread_id, NULL, (void *)push_thread_tcp, 
 		(void *)NULL);
 	pthread_create (&pull_thread_id, NULL, (void *)pull_thread, 
 		(void *)NULL);

@@ -35,6 +35,7 @@ struct tw_tick
 };
 
 int tt_init ();
+void tt_load_config ();
 int tt_push (uint8_t *data, uint32_t len);
 int tt_pull (struct tw_tick *tick);
 int tt_free ();

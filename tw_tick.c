@@ -23,6 +23,7 @@ struct tw_tick *g_tick_head;
 struct tw_tick *g_tick_current;
 struct tw_tick *g_tick_prev;
 pthread_mutex_t mutex;
+pthread_mutex_t config_mutex;
 
 bool valid_length (uint8_t *data, int len)
 {
@@ -84,17 +85,18 @@ bool valid_symbol (struct tw_tick *tick)
 {
 	int i;
 
+	pthread_mutex_lock (&config_mutex);
 	//printf ("m_toyo_cnt = %d\n", m_toyo_cnt);
 	for (i=0; i<m_toyo_cnt; i++)
 	{
 		if (strcmp (g_toyo[i].toyo, tick->symbol) == 0)
 		{
 			strncpy (tick->symbol, g_toyo[i].symbol, 31);
-			//printf ("*************** %s bingo ***************\n", tick->symbol);
+			pthread_mutex_unlock (&config_mutex);
 			return true;
 		}
 	}
-	//printf ("%s not in monitor list\n", tick->symbol);
+	pthread_mutex_unlock (&config_mutex);
 	return false;
 	//return true;
 }
@@ -353,32 +355,38 @@ int tt_decode ()
 	return 0;
 }
 
-int tt_init ()
+void tt_load_config ()
 {
-	//g_data = malloc (sizeof (struct dyn_array));
-	da_init (&g_data, 128);
-	pthread_mutex_init (&mutex, NULL);
-
 	//read valid.toyo file
 	FILE *fp;
 	ssize_t read;
 	char *line = NULL;
 	size_t len = 0;
+	
+	pthread_mutex_lock (&config_mutex);
 	fp = fopen("valid.toyo", "r");
 	if (fp == NULL)
-		return -1;
-	char line_tmp[128][128];
+	{
+		pthread_mutex_unlock (&config_mutex);
+		return;
+	}
+	char line_tmp[1024][128];
 	uint8_t line_cnt = 0;
 	while ((read = getline (&line, &len, fp)) != -1)
 	{
-		if (line_cnt > 127)	break;
+		if (line_cnt >= 1024) break;
 		strncpy (line_tmp[line_cnt++], line, 128);
 		//printf("read : %zu, %s\n", read, line);
 	}
 
+	if (g_toyo)
+		free (g_toyo);
 	g_toyo = malloc (sizeof (struct valid_toyo) * line_cnt);
 	if (g_toyo == NULL)
-		return -1;
+	{
+		pthread_mutex_unlock (&config_mutex);
+		return;
+	}
 	memset (g_toyo, 0, sizeof (struct valid_toyo) * line_cnt);
 	m_toyo_cnt = line_cnt;
 	int i;
@@ -401,9 +409,20 @@ int tt_init ()
 			copy_len = strlen (line_tmp[i]);
 		strncpy (g_toyo[i].symbol, &line_tmp[i][pos+1], copy_len);
 
-		printf ("toyo=%s, symbol=%s\n", g_toyo[i].toyo, g_toyo[i].symbol);
+		//printf ("toyo=%s, symbol=%s\n", g_toyo[i].toyo, g_toyo[i].symbol);
 	}
+	pthread_mutex_unlock (&config_mutex);
 	//printf ("line_cnt=%d, g_toyo size=%zu, struc size=%zu\n", m_toyo_cnt, sizeof (*g_toyo), sizeof (struct valid_toyo));
+}
+
+int tt_init ()
+{
+	//g_data = malloc (sizeof (struct dyn_array));
+	da_init (&g_data, 128);
+	pthread_mutex_init (&mutex, NULL);
+	pthread_mutex_init (&config_mutex, NULL);
+	tt_load_config ();
+
 	return 0;
 }
 
