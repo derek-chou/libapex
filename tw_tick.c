@@ -124,6 +124,10 @@ int vip_parse (uint8_t *data, int len)
 	if (valid_symbol (tick) == false)
 		return -1;
 
+	//期貨試搓和，不算Tick
+	if ((trans_no == 0x45 || trans_no == 0x44) && data[4]&0x20) 
+		return -1;
+
 	//成交時間
 	uint16_t time = 0;
 	if (trans_no == 0x36 || trans_no == 0x47 || 
